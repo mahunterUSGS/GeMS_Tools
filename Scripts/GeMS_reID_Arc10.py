@@ -49,7 +49,7 @@ fctbs = []  # feature class and table inventory
 exemptedPrefixes = ('errors_','ed_')  # prefixes that flag a feature class as not permanent data
 
 def usage():
-	print """
+	print("""
   Usage:  prompt> ncgmp09_reID.py <inGeodatabaseName> <outGeodatabaseName>
                   <UseGUID>
   
@@ -65,7 +65,7 @@ def usage():
 	Otherwise ID values are short character strings that identify tables
         (e.g., MUP for MapUnitPolys) followed by consecutive zero-padded
         integers.
-"""
+""")
 
 def doReID(fc):
     doReID = True
@@ -139,12 +139,12 @@ def buildIdDict(table,sortKey,keyRoot,pKey,lastTime,useGUIDs):
             row.setValue(pKey,newID)
             rows.updateRow(row)
         except:
-            print 'ERROR'
-            print 'pKey = '+str(pKey)+'  newID = '+str(newID)
+            print('ERROR')
+            print('pKey = '+str(pKey)+'  newID = '+str(newID))
         n = n+1
-        #print oldID, newID
+        #print(oldID, newID)
         #add oldID,newID to idDict
-        if oldID <> '' and oldID <> None:
+        if oldID != '' and oldID != None:
             idDict[oldID] = newID
     return elapsedTime(lastTime)
 	
@@ -153,7 +153,7 @@ def reID(table,keyFields,lastTime,outfile):
 	addMsgAndPrint('  resetting IDs for '+table)
 	rows = arcpy.UpdateCursor(table)
 	n = 1
-	row = rows.next()
+	row = next(rows)
 	while row:
 		for field in keyFields:
 			oldValue = row.getValue(field)
@@ -165,7 +165,7 @@ def reID(table,keyFields,lastTime,outfile):
 		# update row
 		rows.updateRow(row)
 		n = n+1
-		row = rows.next()
+		row = next(rows)
 	return elapsedTime(lastTime)
 
 
@@ -192,11 +192,11 @@ def main(lastTime, dbf, useGUIDs, noSources):
                     csSuffix = fctb[1][12:]
                     tabName = tableName[2+len(csSuffix):]
             idRt,rootCounter = idRoot(tabName,rootCounter)
-            if tabName <> tableName:
+            if tabName != tableName:
                     prefix = 'CS'+csSuffix+idRt
             else:
                     prefix = idRt
-            if pKey <> '':
+            if pKey != '':
                 if sortKey[:-2] in fieldNameList(tableName):
                     lastTime = buildIdDict(tableName,sortKey,prefix,pKey,lastTime,useGUIDs)
                 else:
@@ -205,10 +205,10 @@ def main(lastTime, dbf, useGUIDs, noSources):
 
     # purge IdDict of quasi-null keys
     addMsgAndPrint('Purging idDict of quasi-null keys')
-    idKeys = idDict.keys()
+    idKeys = list(idDict.keys())
     for key in idKeys:
             if len(key.split()) == 0:
-                    print 'NullKey', len(key)
+                    print('NullKey', len(key))
                     del idDict[key]
                           
     outfile = open(dbf+'.txt','w')
@@ -218,7 +218,7 @@ def main(lastTime, dbf, useGUIDs, noSources):
             arcpy.env.workspace = fctb[0]+fctb[1]
             keyFields = fctb[4]
             #keyFields.append(fctb[3])
-            if fctb[3] <> '':  # primary key is identified as '' (i.e., doesn't exist, so not an NCGMP09 feature class)
+            if fctb[3] != '':  # primary key is identified as '' (i.e., doesn't exist, so not an NCGMP09 feature class)
                 lastTime = reID(fctb[2],keyFields,lastTime,outfile)
     outfile.close()
     return lastTime

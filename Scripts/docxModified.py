@@ -1,4 +1,4 @@
-#!/usr/bin/env python2.6
+#!/usr/bin/env python3.5
 # -*- coding: utf-8 -*-
 '''
 Open and modify Microsoft Word 2007 docx files (called 'OpenXML' and 'Office OpenXML' by Microsoft)
@@ -69,7 +69,7 @@ set_XMLspace function is GPL'ed code from Zuza Software Foundation:
     # along with this program; if not, see <http://www.gnu.org/licenses/>.
 """
 
-versionString = 'docxModified.py, version of 2 September 2017'
+versionString = 'docxModified.py, version of 2 September 2018'
 
 import logging
 from lxml import etree
@@ -285,7 +285,7 @@ def paragraph(paratext,style='BodyText',breakbefore=False,jc='left'):
             run.append(lastRenderedPageBreak)
             
         # if text string has a leading or trailing space, set xml:space="preserve"
-        if t[0].text <> None:
+        if t[0].text != None:
             if t[0].text[0] == ' ' or t[0].text[-1:] == ' ':
                 setXMLspace(t[0],"preserve")
         run.append(t[0])
@@ -789,21 +789,21 @@ def getDMUdocumenttext(document):
             if element[0].tag == '{'+nsprefixes['w']+'}rPr':
                 styles = ''
                 for el in element[0]:
-                    if el.tag[-1:] == 'b' and element[1].text <> None:
+                    if el.tag[-1:] == 'b' and element[1].text != None:
                         element[1].text = '<b>'+element[1].text+'</b>'
-                    if el.tag[-1:] == 'i' and element[1].text <> None:
+                    if el.tag[-1:] == 'i' and element[1].text != None:
                         element[1].text = '<i>'+element[1].text+'</i>'
                     try:
                       if el.tag[-6:] == 'rFonts' and el.attrib['{'+nsprefixes['w']+'}ascii'] == 'FGDCGeoAge':
                         element[1].text = '<g>'+element[1].text+'</g>'
                     except:
                         try:
-                          print 'Problems with FGDCGeoAge font, text = '+str(element[1].text)
+                          print('Problems with FGDCGeoAge font, text = '+str(element[1].text))
                         except:
-                          print 'Problems with FGDCGeoAge font, un-asciiable text'
-                    if el.tag[-6:] == 'rStyle' and el.attrib['{'+nsprefixes['w']+'}val'] == 'DMUUnitLabeltypestyle' and element[1].text <> None:
+                          print('Problems with FGDCGeoAge font, un-asciiable text')
+                    if el.tag[-6:] == 'rStyle' and el.attrib['{'+nsprefixes['w']+'}val'] == 'DMUUnitLabeltypestyle' and element[1].text != None:
                         element[1].text = '<ul>'+element[1].text+'</ul>'
-                    if el.tag[-9:] == 'vertAlign' and element[1].text <> None:
+                    if el.tag[-9:] == 'vertAlign' and element[1].text != None:
                         if el.attrib['{'+nsprefixes['w']+'}val'] == 'subscript':
                             element[1].text = '<sub>'+element[1].text+'</sub>'
                         elif el.attrib['{'+nsprefixes['w']+'}val'] == 'superscript':

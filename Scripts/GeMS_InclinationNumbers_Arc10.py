@@ -15,9 +15,9 @@ def showInclination(oType):
 
 def findLyr(lname):
     if debug1: addMsgAndPrint('lname = '+lname)
-    mxd = arcpy.mapping.MapDocument('CURRENT')
-    for df in arcpy.mapping.ListDataFrames(mxd):
-        lList = arcpy.mapping.ListLayers(mxd, '*', df)
+    mxd = arcpy.mp.MapDocument('CURRENT')
+    for df in arcpy.mp.ListDataFrames(mxd):
+        lList = arcpy.mp.ListLayers(mxd, '*', df)
         if debug1:
             for lyr in lList:
                 writeLayerNames(lyr)
@@ -109,7 +109,7 @@ def dipNumbers(gdb,mapScaleDenominator):
     #make copy of .lyr file
     newLyr = os.path.dirname(gdb)+'/NewOrientationPointLabels.lyr'
     shutil.copy(os.path.dirname(sys.argv[0])+'/../Resources/OrientationPointLabels.lyr',newLyr)
-    OPLyr = arcpy.mapping.Layer(newLyr)
+    OPLyr = arcpy.mp.Layer(newLyr)
     ## reset data source
     addMsgAndPrint('   gdb = '+gdb)
     if gdb[-3:].lower() == 'gdb':
@@ -129,7 +129,7 @@ def dipNumbers(gdb,mapScaleDenominator):
     # Insert new OrientationPointLabels.lyr
     try:
         lyr,df,refLyr,insertPos = findLyr(gdb+'\GeologicMap\OrientationPoints')
-        arcpy.mapping.InsertLayer(df,lyr,OPLyr,'BEFORE')
+        arcpy.mp.InsertLayer(df,lyr,OPLyr,'BEFORE')
     except:
         addMsgAndPrint('  Unable to insert OrientationPointLabels.lyr.')
 

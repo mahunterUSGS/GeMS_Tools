@@ -243,7 +243,7 @@ def makeNodeList(caf, fields1, arcDirs=False):
 
 def threeArcsMeet(nodeName,arcs):
     # takes list of 3 as argument.
-    # if number of not concealed arcs <> 3, writes an error message, sets
+    # if number of not concealed arcs != 3, writes an error message, sets
     #  sets oddArcs = [arcs], mergeArcs = [] and returns
     # if 3 arcs not concealed
     #   finds pair that bound youngest poly
@@ -253,7 +253,7 @@ def threeArcsMeet(nodeName,arcs):
     #       sets mergeArcs = [], oddArcs = arcs
     mergeArcs = []
     oddArcs = []
-    if len(arcs) <> 3:
+    if len(arcs) != 3:
         addMsgAndPrint('  Problem in adjoinYoungestPoly, '+str(len(arcs))+' arcs')
         addMsgAndPrint(str(arcs))
         return [], arcs
@@ -294,13 +294,13 @@ def arcAttribsSame(arcs):
     else:
         arcsSame = True
         for i in range(1,len(arcs)):
-            if arcs[i][1] <> arcs[0][1]:
+            if arcs[i][1] != arcs[0][1]:
                 arcsSame = False
         return arcsSame
 
 def setUniqueMergeNumbers(arcs):
     global mergeNumber
-    if arcs <> [None]:
+    if arcs != [None]:
         try:
           for anArc in arcs:
             if not anArc[0] in arc2MergeNumberDict.keys():
@@ -317,7 +317,7 @@ def setMatchingMergeNumbers(arcs):
     global mergeNumber
     # test that len(arcs) >= 2 else print error message and return
     otherArcs = None
-    if arcs <> None:
+    if arcs != None:
       if len(arcs) >= 2:
         mn = 0
         arcIDs = []
@@ -359,7 +359,7 @@ addMsgAndPrint('Building hKeyDict')
 fields = ['MapUnit','HierarchyKey']
 with arcpy.da.SearchCursor(inDMU, fields) as cursor:
     for row in cursor:
-        if row[0] <> None:
+        if row[0] != None:
             if not row[0].isspace():
                 hKeyDict[row[0]] = row[1]
 # and, for arcs that adjoin nothing (map boundaries!)
@@ -459,10 +459,10 @@ for node in allNodeList:
         if debug1: addMsgAndPrint('  '+str( arcTypes))
 
         
-    if oddArcs <> None:
+    if oddArcs != None:
         if len(oddArcs) > 0:
             setUniqueMergeNumbers(oddArcs)
-    if mergeArcs <> None:
+    if mergeArcs != None:
         if len(mergeArcs) > 0:
             setMatchingMergeNumbers(mergeArcs)
 

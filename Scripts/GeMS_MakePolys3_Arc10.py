@@ -19,7 +19,7 @@ def checkMultiPts(multiPts,badPointList,badPolyList):
         mapUnits = set()
         mapUnits.add(multiPts[0][2]); mapUnits.add(multiPts[0][3])
         for i in range(0,len(multiPts)):
-            if multiPts[i][0] <> polyID:
+            if multiPts[i][0] != polyID:
                 addMsgAndPrint('PROBLEM IN CHECKMULTIPTS!')
                 addMsgAndPrint(str(multiPts))
                 forceExit()
@@ -35,9 +35,9 @@ def checkMultiPts(multiPts,badPointList,badPolyList):
 def findLyr(lname):
     lname.replace('//','_')
     if debug: addMsgAndPrint('finding layer, lname = '+lname)
-    mxd = arcpy.mapping.MapDocument('CURRENT')
-    for df in arcpy.mapping.ListDataFrames(mxd):
-        lList = arcpy.mapping.ListLayers(mxd, '*', df)
+    mxd = arcpy.mp.MapDocument('CURRENT')
+    for df in arcpy.mp.ListDataFrames(mxd):
+        lList = arcpy.mp.ListLayers(mxd, '*', df)
         for lyr in lList:
             # either layer is a group, datasetName is not supported, and we match lyr.name
             # or (and) we match datasetName, which cannot be aliased as lyr.name may be
@@ -120,9 +120,9 @@ sLayerN = 1
 for aLyr in [mup,badLabels,badPolys,blankPolys,changedPolys]:
     addMsgAndPrint('    looking for '+aLyr)
     lyr = 1
-    while lyr <> -1:
+    while lyr != -1:
         lyr,df,refLyr,insertPos = findLyr(aLyr)
-        if lyr <> -1:
+        if lyr != -1:
             while lyr.longName.find('\\') > 0:
                 groupLyrName = lyr.longName[:lyr.longName.find('\\')]
                 lyr,df,refLyr,insertPos = findLyr(groupLyrName)
@@ -135,7 +135,7 @@ for aLyr in [mup,badLabels,badPolys,blankPolys,changedPolys]:
             #    os.remove(lyrPath)
             arcpy.SaveToLayerFile_management(lyr, lyrPath, "RELATIVE")
             #and now remove the layer
-            arcpy.mapping.RemoveLayer(df, lyr)
+            arcpy.mp.RemoveLayer(df, lyr)
             savedLayers.append([lyrPath,df,refLyr,insertPos,lyr])
             addMsgAndPrint('     layer '+lyrName+' saved and removed from data frame')
             sLayerN = sLayerN+1
@@ -278,12 +278,12 @@ with arcpy.da.SearchCursor(centerPoints3, fields) as cursor:
 cpList.sort()
 badPointList = []
 badPolyList = []
-#step through list. If more than 1 centerpoint with same mupID AND mapUnit1 <> MapUnit2 <>  ...:
+#step through list. If more than 1 centerpoint with same mupID AND mapUnit1 != MapUnit2 !=  ...:
 addMsgAndPrint('    Sorting through label points')
 lastPt = cpList[0]
 multiPts = [lastPt]
 for i in range(1,len(cpList)):
-    if cpList[i][0] <> lastPt[0]:  # different poly than lastPt
+    if cpList[i][0] != lastPt[0]:  # different poly than lastPt
         badPointList, badPolyList = checkMultiPts(multiPts,badPointList,badPolyList)
         lastPt = cpList[i]
         multiPts = [lastPt]
@@ -313,7 +313,7 @@ with arcpy.da.UpdateCursor(badLabels,['OBJECTID']) as cursor:
 addMsgAndPrint('    Making '+blankPolys)
 testAndDelete(blankPolys)
 arcpy.Copy_management(mup,blankPolys)
-query = arcpy.AddFieldDelimiters(blankPolys,'MapUnit')+" <> ''"
+query = arcpy.AddFieldDelimiters(blankPolys,'MapUnit')+" != ''"
 testAndDelete('blankP')
 arcpy.MakeFeatureLayer_management(blankPolys,'blankP',query)
 arcpy.DeleteFeatures_management('blankP')
@@ -333,8 +333,8 @@ for savedLayer in savedLayers:
     lyrPath,dataFrame,refLyr,insertPos,lyr = savedLayer
     addMsgAndPrint('    layer '+lyr.name)
     if debug: addMsgAndPrint('      '+str(lyrPath)+' '+str(dataFrame)+' '+str(refLyr)+' '+str(insertPos))
-    addLyr = arcpy.mapping.Layer(lyrPath)
-    arcpy.mapping.AddLayer(dataFrame, addLyr)
+    addLyr = arcpy.mp.Layer(lyrPath)
+    arcpy.mp.AddLayer(dataFrame, addLyr)
     # if refLyr is part of a layer group, substiture layer group 
     refLyrName = refLyr.longName
     if debug: addMsgAndPrint(refLyrName)
@@ -345,14 +345,14 @@ for savedLayer in savedLayers:
             refLyrName = refLyr.longName
     try:
         addMsgAndPrint('    '+str(addLyr))
-        arcpy.mapping.InsertLayer(dataFrame, refLyr, addLyr, insertPos)
+        arcpy.mp.InsertLayer(dataFrame, refLyr, addLyr, insertPos)
         arcpy.Delete_management(lyrPath)
     except:
         addMsgAndPrint('    failed to insert '+str(addLyr)+' '+insertPos+' refLyr '+str(refLyr))
         if debug:
-            mxd = arcpy.mapping.MapDocument('CURRENT')
-            for df in arcpy.mapping.ListDataFrames(mxd):
-                lList = arcpy.mapping.ListLayers(mxd, '*', df)
+            mxd = arcpy.mp.MapDocument('CURRENT')
+            for df in arcpy.mp.ListDataFrames(mxd):
+                lList = arcpy.mp.ListLayers(mxd, '*', df)
                 addMsgAndPrint(' refLyr = '+str(refLyr))
                 for lyr in lList:
                     addMsgAndPrint('      '+str(lyr)+', matches refLyr = '+str(lyr == refLyr))

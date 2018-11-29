@@ -48,6 +48,7 @@ rhaugerud@usgs.gov, ethoms@usgs.gov
 # 12 August 2017 Modified to recognize GeoMaterial, GeoMaterialConfidence, and GeoMaterialDict.
 #     Added number of rows in each table to gdb description in SupplementalInfo
 
+#Metadata conversion (ImportMetadata_conversion) is not supported in Pro as of 180926, but is on the roadmap.
 
 import arcpy, sys, os.path, copy, imp, glob
 from GeMS_Definition import enumeratedValueDomainFieldList, rangeDomainDict, unrepresentableDomainDict, attribDict, entityDict, GeoMatConfDict
@@ -95,7 +96,7 @@ def __findInlineRef(sourceID):
     # finds the Inline reference for each DataSource_ID
     query = '"DataSources_ID" = \'' + sourceID + '\''
     rows = arcpy.SearchCursor(dataSources, query)
-    row = rows.next()
+    row = next(rows)
     if not row is None:
         #return row.Inline
         return row.Source
@@ -142,7 +143,7 @@ def __updateEdom(fld, defs, dom):
         if attrlabl.firstChild.data == fld:
             attr = attrlabl.parentNode
             attrdomv = dom.createElement('attrdomv')
-            for k in defs.iteritems():
+            for k in defs.items():
                 edom = dom.createElement('edom')
                 edomv = __newElement(dom,'edomv',k[0])
                 edomvd = __newElement(dom,'edomvd',k[1][0])
@@ -175,7 +176,7 @@ def __updateEntityAttributes(fc, fldList, dom, logFile):
     for fld in fldList:      
         addMsgAndPrint( '      Field: '+ fld)
         # if is _ID field or if field definition is available, update definition
-        if fld.find('_ID') > -1 or attribDict.has_key(fld):
+        if fld.find('_ID') > -1 or fld in attribDict:
             dom = __updateAttrDef(fld,dom)
         else:
             cantfindTerm.append(fld)
@@ -183,10 +184,10 @@ def __updateEntityAttributes(fc, fldList, dom, logFile):
         if fld.find('_ID') > -1:
             dom = __updateUdom(fld,dom,unrepresentableDomainDict['_ID'])
         #if this is another unrepresentable-domain field
-        if unrepresentableDomainDict.has_key(fld):
+        if fld in unrepresentableDomainDict:
             dom = __updateUdom(fld,dom,unrepresentableDomainDict[fld])
         #if this is a defined range-domain field
-        elif rangeDomainDict.has_key(fld):
+        elif fld in rangeDomainDict:
             dom = __updateRdom(fld,dom)
         #if this is MapUnit in DMU
         elif fld == 'MapUnit' and fc == 'DescriptionOfMapUnits':
@@ -196,12 +197,12 @@ def __updateEntityAttributes(fc, fldList, dom, logFile):
             valList = []
             #create a search cursor on the field
             rows = arcpy.SearchCursor(fc,'','', fld)
-            row = rows.next()           
+            row = next(rows)           
             #collect all values/terms in that field
             while row:
                 if not row.getValue(fld) is None:
                     valList.append(row.getValue(fld))
-                row = rows.next()            
+                row = next(rows)            
             #uniquify the list by converting it to a set object
             valList = set(valList)
             #create an empty dictionary object to hold the matches between the unique terms
@@ -209,17 +210,17 @@ def __updateEntityAttributes(fc, fldList, dom, logFile):
             defs = {}
             #for each unique term, try to create a search cursor of just one record where the term
             #matchs a Term field value from the glossary
-            if fld == 'MapUnit' and fc <> 'DescriptionOfMapUnits':
+            if fld == 'MapUnit' and fc != 'DescriptionOfMapUnits':
                 for t in valList:            
                     query = '"MapUnit" = \'' + t + '\''
                     rows = arcpy.SearchCursor(DMU, query)
-                    row = rows.next()
+                    row = next(rows)
                     #if the searchcursor contains a row
                     if row:
                         #create an entry in the dictionary of term:[definition, source] key:value pairs
                         #this is how we will enumerate through the enumerated_domain section
                         defs[t] = []
-                        if row.FullName <> None:
+                        if row.FullName != None:
                             defs[t].append(row.FullName.encode('utf_8'))
                             defs[t].append('this report, table DescriptionOfMapUnits')
                         else:
@@ -241,7 +242,7 @@ def __updateEntityAttributes(fc, fldList, dom, logFile):
                     if debug:
                         addMsgAndPrint('query='+query)
                     rows = arcpy.SearchCursor(gmDict, query)
-                    row = rows.next()
+                    row = next(rows)
                     #if the searchcursor contains a row
                     if row:
                         if debug:
@@ -259,7 +260,7 @@ def __updateEntityAttributes(fc, fldList, dom, logFile):
                 for t in valList:
                     query = '"DataSources_ID" = \'' + t + '\''
                     rows = arcpy.SearchCursor(dataSources, query)
-                    row = rows.next()
+                    row = next(rows)
                     #if the searchcursor contains a row
                     if row:
                         #create an entry in the dictionary of term:[definition, source] key:value pairs
@@ -275,7 +276,7 @@ def __updateEntityAttributes(fc, fldList, dom, logFile):
                     if debug:
                         addMsgAndPrint('query='+query)
                     rows = arcpy.SearchCursor(gloss, query)
-                    row = rows.next()
+                    row = next(rows)
                     #if the searchcursor contains a row
                     if row:
                         #create an entry in the dictionary of term:[definition, source] key:value pairs
@@ -284,7 +285,7 @@ def __updateEntityAttributes(fc, fldList, dom, logFile):
                         defs[t].append(row.Definition.encode('utf_8'))
                         defs[t].append(__findInlineRef(row.DefinitionSourceID).encode('utf_8'))
                     else:
-                        if fld <> 'GeoMaterial' and fc <> 'GeoMaterialDict':
+                        if fld != 'GeoMaterial' and fc != 'GeoMaterialDict':
                             cantfindValue.append([fld,t])
             dom = __updateEdom(fld, defs, dom)
         else:  #presumed to be an unrepresentable domain
@@ -391,7 +392,7 @@ def updateTableDom(dom,fc,logFile):
     if desc.datasetType == 'FeatureClass' and desc.FeatureType == 'Annotation':
         isAnno = True
     else: isAnno = False 
-    if entityDict.has_key(fc):
+    if fc in entityDict:
         hasDesc = True
         descText = entityDict[fc]
         descSourceText = ncgmp
@@ -452,7 +453,7 @@ def updateTableDom(dom,fc,logFile):
                 attr.appendChild(attrlabl)
                 detailed.appendChild(attr)                
         #update the entity description and entity description source
-        if entityDict.has_key(fc) or ( fc[0:2] == 'CS' and entityDict.has_key(fc[2:]) ):
+        if fc in entityDict or ( fc[0:2] == 'CS' and fc[2:] in entityDict):
             enttypl = dom.getElementsByTagName('enttypl')
             if len(enttypl) > 0:
                 enttyp = enttypl[0].parentNode
@@ -497,7 +498,7 @@ def writeGdbDesc(gdb):
     return desc
 
 def writeFdsDesc(gdb,fdsName):
-    if entityDict.has_key(fdsName):
+    if fdsName in entityDict:
         desc = entityDict[fdsName] +' It contains the following elements: '
     else:
         desc = 'Feature dataset '+fdsName+' contains the following elements: '
@@ -523,7 +524,7 @@ gdb = os.path.basename(inGdb)
 
 
 ## supplement entity and field dictionaries from GeMS_Definition 
-if sys.argv[2] <> '#':
+if sys.argv[2] != '#':
     if os.path.exists(sys.argv[2]):
         myDefs = imp.load_source('module1',sys.argv[2])
         myDefs.addDefs()
@@ -637,7 +638,7 @@ for anFds in fds:
     dom = titleSuffix(dom,': feature dataset '+anFds)
     supplementaryInfo = 'Feature dataset '+anFds+gdbDesc0b+gdbDesc2
     dom = addSupplinf(dom,supplementaryInfo)
-    if entityDict.has_key(anFds):
+    if anFds in entityDict:
         overText = entityDict[anFds]
         overSrc = ncgmpFullRef
     elif anFds.find('CrossSection') == 0:

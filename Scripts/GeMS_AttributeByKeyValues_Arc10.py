@@ -13,7 +13,7 @@ Usage: GeMS_AttributeByKeyValues.py <geodatabase> <file.txt>
      See Dig24K_KeyValues.txt for an example and format instructions.
      """
 
-versionString = 'GeMS_AttributeByKeyValues_Arc10.py, version of 2 September 2017'
+versionString = 'GeMS_AttributeByKeyValues_Arc10.py, version of 2 September 2018'
 
 import arcpy, sys
 from GeMS_utilityFunctions import *
@@ -30,7 +30,7 @@ def makeFieldTypeDict(fds,fc):
     return fdict
 
 addMsgAndPrint('  '+versionString)
-if len(sys.argv) <> 3:
+if len(sys.argv) != 3:
     addMsgAndPrint(usage)
     sys.exit()
 
@@ -41,16 +41,15 @@ arcpy.env.workspace = 'GeologicMap'
 featureClasses = arcpy.ListFeatureClasses()
 arcpy.env.workspace = gdb
 
+#Personal geodatabases are not supported in Pro and are being phased out entirely by Esri
 if gdb.find('.mdb') > 0:
-    isMDB = True
-else:
-    isMDB = False
+    addMsgAndPrint('Personal geodatabases (*.mdb) are not supported in Arc Pro')
 
 # remove empty lines from keylines1
 keylines = []
 for lin in keylines1:
     lin = lin.strip()
-    if len(lin) > 1 and lin[0:1] <> '#':
+    if len(lin) > 1 and lin[0:1] != '#':
         keylines.append(lin)
         
 n = 0
@@ -72,7 +71,7 @@ while n < len(keylines):
                 n = n+1
     else:  # must be a key-value: dependent values line
         vals = keylines[n].split(separator)
-        if len(vals) <> numMFields:
+        if len(vals) != numMFields:
             addMsgAndPrint('\nline:\n  '+keylines[n]+'\nhas wrong number of values. Exiting.')
             sys.exit()
         for i in range(len(vals)):  # strip out quotes
@@ -84,10 +83,7 @@ while n < len(keylines):
         #  if i == 0, make table view, else resel rows with NULL values for attrib[i] and calc values
         arcpy.env.overwriteOutput = True  # so we can reuse table tempT
         for i in range(len(mFields)):
-            if isMDB:
-                selField = '['+mFields[i]+']'
-            else:
-                selField = '"'+mFields[i]+'"'
+            selField = '"'+mFields[i]+'"'
             if i == 0:  # select rows with specified independent value 
                 whereClause = selField+' = '+"'"+vals[0]+"'"
                 arcpy.MakeTableView_management('GeologicMap/'+fClass,'tempT',whereClause)

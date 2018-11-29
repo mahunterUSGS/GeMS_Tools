@@ -5,6 +5,7 @@ import arcpy, os.path, sys
 import egis
 from GeMS_utilityFunctions import *
 
+#Arc Pro does not yet support metadata conversion; as of 180926 it is on the roadmap for future implementation
 addMsgAndPrint(versionString)
 
 inGdb = os.path.abspath(sys.argv[1])
@@ -23,7 +24,7 @@ fds = arcpy.ListDatasets()
 for fd in fds:
     arcpy.env.workspace = fd
     fc1 = arcpy.ListFeatureClasses()
-    if fc1 <> None:
+    if fc1 != None:
       for fc in fc1:
         featureClasses.append(fd+'/'+fc)
 
@@ -39,7 +40,7 @@ def purgeGeoprocessingFGDC(table,metadataFile):
     addMsgAndPrint('  clearing internal metadata')
     arcpy.ClearMetadata_usgs(table)
     addMsgAndPrint('  importing metadata from '+metadataFile)
-    arcpy.ImportMetadata_conversion (metadataFile,"FROM_FGDC",table)
+    arcpy.ImportMetadata_conversion (metadataFile,"FROM_FGDC",table) #not in Pro yet
     
 # gdb as a whole
 metadataFile = outDir+os.path.basename(inGdb)[:-4]+'-metadata.xml'

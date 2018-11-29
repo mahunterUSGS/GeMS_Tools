@@ -21,7 +21,7 @@
 #   Please include "GeMS" in the subject line.
 #   Thanks!
 
-print '  importing arcpy...'
+print('  importing arcpy...')
 import arcpy, sys, time, os.path, glob
 from GeMS_Definition import tableDict, fieldNullsOKDict
 from GeMS_utilityFunctions import *
@@ -244,7 +244,7 @@ def checkTableFields(dBTable,defTable):
       # check field definition
       if field in requiredFields.keys():
         # field type
-        if existingFields[field].type <> requiredFields[field][1]:
+        if existingFields[field].type != requiredFields[field][1]:
           schemaErrors.append('<span class="tables">'+dBTable+'</span>, field <span class="fields">'+field+'</span>, type should be '+requiredFields[field][1])
         # Using Arc field properties to enforce non-nullability is a bad idea
         ### need to use part of code below to check for illicit null values in nullable fields
@@ -253,7 +253,7 @@ def checkTableFields(dBTable,defTable):
         # # nullStatus = 'NullsOK'
         #else:
         #  nullStatus = 'NoNulls'
-        #if nullStatus <> requiredFields[field][2]:
+        #if nullStatus != requiredFields[field][2]:
         #  schemaErrors.append(dBTable+', field '+field+' should be '+requiredFields[field][2])
   except:
     schemaErrors.append(dBTable+' could not get field list. Fields not checked.')
@@ -266,7 +266,7 @@ def loadTableValues(tableName,fieldName,valueList):
 	else: 
 		row = rows.next()
 		while row:
-			if row.getValue(fieldName) <> None:
+			if row.getValue(fieldName) != None:
 				valueList.append(row.getValue(fieldName))
 			row = rows.next() 
 		loadValuesFlag = True
@@ -309,7 +309,7 @@ def inventoryValues(thisDatabase,table):
     for field in fields:
         if field in gFieldDefList:
             glossFields.append(field)
-        if field.find('SourceID') >= 0 and field.find('_ID') < 0 and table <> 'DataSources':
+        if field.find('SourceID') >= 0 and field.find('_ID') < 0 and table != 'DataSources':
             sourceFields.append(field)
         if field == idField:
             hasIdField = True
@@ -324,10 +324,10 @@ def inventoryValues(thisDatabase,table):
     while row:
         if hasIdField:
             all_IDs.append([row.getValue(idField),table])
-        if table <> 'Glossary':
+        if table != 'Glossary':
             for field in glossFields:
               try:
-                if row.getValue(field) <> '' and row.getValue(field) <> None:
+                if row.getValue(field) != '' and row.getValue(field) != None:
                                     allGlossaryRefs.append([str(row.getValue(field)),field,table])
               except:
                 errString = 'Table '+table+', OBJECTID = '+str(row.getValue('OBJECTID'))
@@ -337,8 +337,8 @@ def inventoryValues(thisDatabase,table):
                 pass
         if mapUnitExists:
             mu = str(row.getValue('MapUnit'))
-            if mu <> '':
-                if table <> 'DescriptionOfMapUnits' and table <> 'StandardLithology':
+            if mu != '':
+                if table != 'DescriptionOfMapUnits' and table != 'StandardLithology':
                         allMapUnitRefs.append([mu,table])
                 if table == 'MapUnitPolys':
                         gmapMapUnits.append(mu)
@@ -347,7 +347,7 @@ def inventoryValues(thisDatabase,table):
                 if table == 'CMUMapUnitPolys' or table == 'CMUMapUnitPoints':
                         cmuMapUnits.append(mu)
                 if table == 'DescriptionOfMapUnits':
-                        if mu <> 'None':
+                        if mu != 'None':
                                 dmuMapUnits.append(mu)
                                         
         for field in sourceFields:
@@ -360,7 +360,7 @@ def inventoryValues(thisDatabase,table):
         # check for impermissible Null values        
         for field in fields:
             tableField = tableName+' '+field
-            if fieldNullsOKDict.has_key(tableField):
+            if tableField in fieldNullsOKDict:
                 if not fieldNullsOKDict[tableField]:
                     if isNullValue(row.getValue(field)):
                         missingRequiredValues.append(tableRow+', <span class="fields">'+field+'</span>')
@@ -368,7 +368,7 @@ def inventoryValues(thisDatabase,table):
         for field in tableFields:
             if field.type == 'String':
                 stringVal = row.getValue(field.name)
-                if stringVal <> None and ( stringVal == '' or stringVal.isspace() ):
+                if stringVal != None and ( stringVal == '' or stringVal.isspace() ):
                     zeroLengthStrings.append(tableRow+', <span class="fields">'+field.name+'</span>')
          
         row = rows.next()
@@ -388,7 +388,7 @@ def inventoryWorkspace(tables,fdsfc):
         featureClassList = []
         if debug:
             addMsgAndPrint(str(featureDataSet)+'-'+str(featureClasses))
-        if featureClasses <> None:
+        if featureClasses != None:
             for featureClass in featureClasses:
                 listDataSet(featureClass)
                 featureClassList.append(featureClass)
@@ -399,20 +399,20 @@ def checkFieldsAndFieldDefinitions():
     for table in tables:
         if debug: addMsgAndPrint('    Table = '+table)
         arcpy.env.workspace = thisDatabase
-        if not ( tableDict.has_key(table) or table == 'GeoMaterialDict'): 
+        if not (table in tableDict or table == 'GeoMaterialDict'): 
             schemaExtensions.append('Table <span class="tables">'+table+'</span>')
         else:
-          if table <> 'GeoMaterialDict':
+          if table != 'GeoMaterialDict':
             checkTableFields(table,table)
         inventoryValues(thisDatabase,table)
     for fds in fdsfc:
-        if not fds[0] in ('GeologicMap','CorrelationOfMapUnits') and fds[0:12] <> 'CrossSection':
+        if not fds[0] in ('GeologicMap','CorrelationOfMapUnits') and fds[0:12] != 'CrossSection':
             schemaExtensions.append('Feature dataset <span class="tables">'+fds[0]+'</span>')
         arcpy.env.workspace = thisDatabase
         arcpy.env.workspace = fds[0]
         for featureClass in fds[1]:
             if debug: addMsgAndPrint('    Feature class = '+featureClass)
-            if not tableDict.has_key(featureClass): 
+            if featureClass not in tableDict: 
                 schemaExtensions.append('Feature class <span class="tables">'+featureClass+'</span>')
             else: 
               try:
@@ -480,7 +480,7 @@ def checkContent():
     for anID in all_IDs:
         all_IDs0.append(str(anID[0]))
     for anID in extendedAttribIDs:
-        if anID <> None and not anID in all_IDs0:
+        if anID != None and not anID in all_IDs0:
             unreferencedIds.append('    '+ anID)
     
     # Check allDataSourcesRefs against DataSources
@@ -490,7 +490,7 @@ def checkContent():
         allDataSourcesRefs.sort()
         lastID = ''
         for anID in allDataSourcesRefs:
-            if anID[0] <> None and anID[0] <> lastID:
+            if anID[0] != None and anID[0] != lastID:
                 lastID = anID[0]
                 if anID[0] not in dataSourcesIDs:
                     missingSourceIDs.append(space4 + '<span class="values">'+ str(anID[0])+'</span>, cited in field <span class="fields">'+str(anID[1])+'</span> of table <span class="tables">'+str(anID[2])+'</span>')
@@ -500,7 +500,7 @@ def checkContent():
         for ref in allDataSourcesRefs:
             allSourceRefIDs.append(ref[0])
         for anID in dataSourcesIDs:
-            if anID <> None and not anID in allSourceRefIDs:
+            if anID != None and not anID in allSourceRefIDs:
                 unusedDataSources.append(space4 + '<span class="values">' + anID + '</span>')
     else:
         missingSourceIDs.append(space4 + 'Error: did not find field <span class="fields">DataSources_ID</span> in table <span class="tables">DataSources</span>')
@@ -521,7 +521,7 @@ def checkContent():
     allMapUnitRefs2 = []
     addMsgAndPrint('    Checking for missing map units in DMU and StandardLithology')
     for mu in allMapUnitRefs:
-            if mu[0] <> lastMU:
+            if mu[0] != lastMU:
                 lastMU = mu[0]
                 allMapUnitRefs2.append(lastMU)
                 if mu[0] not in dmuMapUnits:
@@ -559,13 +559,13 @@ def checkContent():
     lastMu = ''
     standardLithMapUnits.sort()
     for mu in standardLithMapUnits:
-        if mu <> lastMu and not mu in allMapUnitRefs2:
+        if mu != lastMu and not mu in allMapUnitRefs2:
             lastMu = mu
             unreferencedStandardLithMapUnits.append(space4 + mu)
     # look for unreferenced map units in DMU
     addMsgAndPrint('    Checking for excess map units in DMU')
     for mu in dmuMapUnits:
-        if mu not in allMapUnitRefs2 and mu <> '':
+        if mu not in allMapUnitRefs2 and mu != '':
             unreferencedDmuMapUnits.append(space4 + mu)
     # Check allGlossaryRefs against Glossary
     addMsgAndPrint('    Checking glossary references')
@@ -574,7 +574,7 @@ def checkContent():
         allGlossaryRefs.sort()
         lastTerm = ''
         for term in allGlossaryRefs:
-            if str(term[0]) <> 'None' and term[0] <> lastTerm:
+            if str(term[0]) != 'None' and term[0] != lastTerm:
                 lastTerm = term[0]
                 if term[0] not in glossaryTerms:
                     if len(term[0]) < 40:
@@ -615,7 +615,7 @@ def checkContent():
                     hKeyParts = hKey.split('-')
                     keyErr = False
                     for hKeyPart in hKeyParts:
-                        if len(hKeyPart) <> partLength:
+                        if len(hKeyPart) != partLength:
                                 keyErr = True
                     if keyErr:
                         hKeyErrors.append('    '+hKey)  
@@ -648,7 +648,7 @@ def tableToHtml(html,table):
     # table is input table
     fields = arcpy.ListFields(table)
     for field in fields:
-        print field.name
+        print(field.name)
     # start table
     html.write('<div class="tablediv">\n')
     html.write('<table class="ess-tables">\n')
@@ -728,7 +728,7 @@ def writeContentErrors(outfl,errors,noErrorString,outFile,htmlFileCount):
         else:
             writefl.write('<br>\n')
     writefl.write('<br>\n')
-    if writefl <> outfl:
+    if writefl != outfl:
         writefl.close()
     return htmlFileCount
 

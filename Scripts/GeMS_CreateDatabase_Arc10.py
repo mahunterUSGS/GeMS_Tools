@@ -12,12 +12,13 @@
 # 17 March 2017  Added optional table MiscellaneousMapInformation
 # 30 Oct 2017  Moved CartoRepsAZGS and GeMS_lib.gdb to ../Resources
 # 4 March 2018  changed to use writeLogfile()
+# 4 April 2018  CorrelationOfMapUnits coordinate system was undefined, now same as GeologicMap
 
 import arcpy, sys, os, os.path
 from GeMS_Definition import tableDict, GeoMaterialConfidenceValues, DefaultExIDConfidenceValues
 from GeMS_utilityFunctions import *
 
-versionString = 'GeMS_CreateDatabase_Arc10.py, version of 4 March 2018'
+versionString = 'GeMS_CreateDatabase_Arc10.py, version of 4 April 2018'
 
 debug = True
 
@@ -114,15 +115,15 @@ def addTracking(tfc):
             addMsgAndPrint(arcpy.GetMessages(2))
 
 
-def cartoRepsExistAndLayer(fc):
-    crPath = os.path.join(os.path.dirname(sys.argv[0]),'../Resources/CartoRepsAZGS')
-    hasReps = False
-    repLyr = ''
-    for repFc in 'ContactsAndFaults','GeologicLines','OrientationPoints':
-        if fc.find(repFc) > -1:
-            hasReps = True
-            repLyr = os.path.join(crPath,repFc+'.lyr')
-    return hasReps,repLyr
+# def cartoRepsExistAndLayer(fc):
+    # crPath = os.path.join(os.path.dirname(sys.argv[0]),'../Resources/CartoRepsAZGS')
+    # hasReps = False
+    # repLyr = ''
+    # for repFc in 'ContactsAndFaults','GeologicLines','OrientationPoints':
+        # if fc.find(repFc) > -1:
+            # hasReps = True
+            # repLyr = os.path.join(crPath,repFc+'.lyr')
+    # return hasReps,repLyr
 
 def main(thisDB,coordSystem,nCrossSections):
     # create feature dataset GeologicMap
@@ -140,8 +141,6 @@ def main(thisDB,coordSystem,nCrossSections):
             featureClasses.append(fc)
     for featureClass in featureClasses:
         fieldDefs = tableDict[featureClass]
-        if addLTYPE and fc <> 'DataSourcePolys':
-            fieldDefs.append(['PTYPE','String','NullsOK',50])
         createFeatureClass(thisDB,'GeologicMap',featureClass,'POLYGON',fieldDefs)
             
     # line feature classes
@@ -164,15 +163,20 @@ def main(thisDB,coordSystem,nCrossSections):
         if fc in OptionalElements:
             featureClasses.append(fc)
     for featureClass in featureClasses:
-        fieldDefs = tableDict[featureClass]
-        if addLTYPE:
-            fieldDefs.append(['PTTYPE','String','NullsOK',50])
+        if featureClass == 'MapUnitPoints': 
+            fieldDefs = tableDict['MapUnitPolys']
+            if addLTYPE:
+                fieldDefs.append(['PTYPE','String','NullsOK',50])
+        else:	
+            fieldDefs = tableDict[featureClass]
+            if addLTYPE and featureClass in ['OrientationPoints']:
+                fieldDefs.append(['PTTYPE','String','NullsOK',50])
         createFeatureClass(thisDB,'GeologicMap',featureClass,'POINT',fieldDefs)
 
     # create feature dataset CorrelationOfMapUnits
     if 'CorrelationOfMapUnits' in OptionalElements:
         addMsgAndPrint('  Creating feature dataset CorrelationOfMapUnits...')
-        arcpy.CreateFeatureDataset_management(thisDB,'CorrelationOfMapUnits')
+        arcpy.CreateFeatureDataset_management(thisDB,'CorrelationOfMapUnits',coordSystem)
         fieldDefs = tableDict['CMUMapUnitPolys']
         createFeatureClass(thisDB,'CorrelationOfMapUnits','CMUMapUnitPolys','POLYGON',fieldDefs)
         fieldDefs = tableDict['CMULines']
@@ -196,18 +200,16 @@ def main(thisDB,coordSystem,nCrossSections):
         addMsgAndPrint('  Creating feature data set CrossSection'+xsLetter+'...')
         arcpy.CreateFeatureDataset_management(thisDB,xsName)
         fieldDefs = tableDict['MapUnitPolys']
-        if addLTYPE:
-            fieldDefs.append(['PTYPE','String','NullsOK',100])
         fieldDefs[0][0] = xsN+'MapUnitPolys_ID'
         createFeatureClass(thisDB,xsName,xsN+'MapUnitPolys','POLYGON',fieldDefs)
         fieldDefs = tableDict['ContactsAndFaults']
         if addLTYPE:
-            fieldDefs.append(['LTYPE','String','NullsOK',100])
+            fieldDefs.append(['LTYPE','String','NullsOK',50])
         fieldDefs[0][0] = xsN+'ContactsAndFaults_ID'
         createFeatureClass(thisDB,xsName,xsN+'ContactsAndFaults','POLYLINE',fieldDefs)
         fieldDefs = tableDict['OrientationPoints']
         if addLTYPE:
-            fieldDefs.append(['PTTYPE','String','NullsOK',100]) 
+            fieldDefs.append(['PTTYPE','String','NullsOK',50]) 
         fieldDefs[0][0] = xsN+'OrientationPoints_ID'
         createFeatureClass(thisDB,xsName,xsN+'OrientationPoints','POINT',fieldDefs)
 
@@ -283,7 +285,7 @@ def main(thisDB,coordSystem,nCrossSections):
 
     # if cartoReps, add cartographic representations to all feature classes
     # trackEdits, add editor tracking to all feature classes and tables
-    if cartoReps or trackEdits:
+    if trackEdits:
         arcpy.env.workspace = thisDB
         tables = arcpy.ListTables()
         datasets = arcpy.ListDatasets()
@@ -292,37 +294,37 @@ def main(thisDB,coordSystem,nCrossSections):
             arcpy.env.workspace = thisDB+'/'+dataset
             fcs = arcpy.ListFeatureClasses()
             for fc in fcs:
-                hasReps,repLyr = cartoRepsExistAndLayer(fc)
-                if cartoReps and hasReps:
-                    addMsgAndPrint('    Adding cartographic representations to '+fc)
-                    try:
-                        arcpy.AddRepresentation_cartography(fc,fc+'_rep1','RuleID1','Override1',default,repLyr,'NO_ASSIGN')
-                        """
-                            Note the 1 suffix on the representation name (fc+'_rep1') and the RuleID1 and Override1 fields.
-                        If at some later time we wish to add additional representations to a feature class, each will
-                        require it's own RuleID and Override fields which may be identified, and tied to the appropriate
-                        representation, by suffixes 2, 3, ...
-                            Naming representations fc+'_rep'+str(n) should be sufficient to identify each representation in a 
-                        geodatabase uniquely, and allow for multiple representations within a single feature class.
-                            It appears that ArcGIS provides no means of scripting an inventory of representations within
-                        feature class or geodatabase. So, the convenience of establishing a coded-value domain that ties
-                        representation rule IDs (consecutive integers) to some sort of useful text identifier becomes a
-                        necessity for flagging the presence of a representation: One CAN script the inventory of domains
-                        in a geodatabase. Run arcpy.da.ListDomains. Check the result for names of the form
-                        <featureClassName>_rep??_Rule and voila, you've got a list of representations (and their associated
-                        feature classes) in the geodatabase.
-                            Moral: If you add a representation, be sure to add an associated coded-value domain and name
-                        it appropriately!
-                        """
-                    except:
-                        addMsgAndPrint(arcpy.GetMessages(2))
+                # hasReps,repLyr = cartoRepsExistAndLayer(fc)
+                # if cartoReps and hasReps:
+                    # addMsgAndPrint('    Adding cartographic representations to '+fc)
+                    # try:
+                        # arcpy.AddRepresentation_cartography(fc,fc+'_rep1','RuleID1','Override1',default,repLyr,'NO_ASSIGN')
+                        # """
+                            # Note the 1 suffix on the representation name (fc+'_rep1') and the RuleID1 and Override1 fields.
+                        # If at some later time we wish to add additional representations to a feature class, each will
+                        # require it's own RuleID and Override fields which may be identified, and tied to the appropriate
+                        # representation, by suffixes 2, 3, ...
+                            # Naming representations fc+'_rep'+str(n) should be sufficient to identify each representation in a 
+                        # geodatabase uniquely, and allow for multiple representations within a single feature class.
+                            # It appears that ArcGIS provides no means of scripting an inventory of representations within
+                        # feature class or geodatabase. So, the convenience of establishing a coded-value domain that ties
+                        # representation rule IDs (consecutive integers) to some sort of useful text identifier becomes a
+                        # necessity for flagging the presence of a representation: One CAN script the inventory of domains
+                        # in a geodatabase. Run arcpy.da.ListDomains. Check the result for names of the form
+                        # <featureClassName>_rep??_Rule and voila, you've got a list of representations (and their associated
+                        # feature classes) in the geodatabase.
+                            # Moral: If you add a representation, be sure to add an associated coded-value domain and name
+                        # it appropriately!
+                        # """
+                    # except:
+                        # addMsgAndPrint(arcpy.GetMessages(2))
                 if trackEdits:
                     addTracking(fc)
         if trackEdits:
             addMsgAndPrint('  Tables ')
             arcpy.env.workspace = thisDB
             for aTable in tables:
-                if aTable <> 'GeoMaterialDict':
+                if aTable != 'GeoMaterialDict':
                     addTracking(aTable)
 
 def createDatabase(outputDir,thisDB):
@@ -333,7 +335,7 @@ def createDatabase(outputDir,thisDB):
         raise arcpy.ExecuteError
     try:
         if thisDB[-4:] == '.mdb':
-            arcpy.CreatePersonalGDB_management(outputDir,thisDB)
+            addMsgAndPrint('  Personal geodatabases are not supported in Arc Pro')
         if thisDB[-4:] == '.gdb':
             arcpy.CreateFileGDB_management(outputDir,thisDB)
         return True
@@ -356,7 +358,7 @@ if len(sys.argv) >= 6:
 
     thisDB = sys.argv[2]
     # test for extension; if not given, default to file geodatabase
-    if not thisDB[-4:].lower() in ('.gdb','.mdb'):
+    if not thisDB[-4:].lower() in ('.gdb'):
         thisDB = thisDB+'.gdb'
 
     coordSystem = sys.argv[3]
@@ -380,17 +382,18 @@ if len(sys.argv) >= 6:
         
     if arcpy.GetInstallInfo()['Version'] < '10.1':
         trackEdits = False
-        
-    try:
-        if sys.argv[7] == 'true':
-            cartoReps = True
-        else:
-            cartoReps = False
-    except:
-        cartoReps = False
+
+#Arc Pro does not support representations
+    # try:
+        # if sys.argv[7] == 'true':
+            # cartoReps = True
+        # else:
+            # cartoReps = False
+    # except:
+        # cartoReps = False
 
     try:
-        if sys.argv[8] == 'true':
+        if sys.argv[7] == 'true':
             addLTYPE = True
         else:
             addLTYPE = False
@@ -398,7 +401,7 @@ if len(sys.argv) >= 6:
         addLTYPE = False
         
     try:
-        if sys.argv[9] == 'true':
+        if sys.argv[8] == 'true':
             addConfs = True
         else:
             addConfs = False
@@ -408,7 +411,7 @@ if len(sys.argv) >= 6:
     # create personal gdb in output directory and run main routine
     if createDatabase(outputDir,thisDB):
         thisDB = outputDir+'/'+thisDB
-        arcpy.RefreshCatalog(thisDB)
+#        arcpy.RefreshCatalog(thisDB) #removed in Pro; should refresh automatically in CURRENT view
         main(thisDB,coordSystem,nCrossSections)
 
     # try to write a readme within the .gdb
